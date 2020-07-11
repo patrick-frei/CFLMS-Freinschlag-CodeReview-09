@@ -1,0 +1,155 @@
+DATABASE
+#1
+  CREATE DATABASE mail_delivery_service DEFAULT CHARACTER SET utf8;
+
+TABLES
+#2
+  CREATE TABLE pu_stations(id INT PRIMARY KEY AUTO_INCREMENT,
+                           organization VARCHAR(50),
+                           street VARCHAR(50),
+                           zip_code INT,
+                           city VARCHAR(50));
+#3
+  CREATE TABLE in_deliveries(id INT PRIMARY KEY AUTO_INCREMENT,
+                           date datetime);
+#4
+  CREATE TABLE item_categories(id INT PRIMARY KEY AUTO_INCREMENT,
+                               name VARCHAR(50));
+#5
+  CREATE TABLE tariffs(id INT PRIMARY KEY AUTO_INCREMENT,
+                       country_code VARCHAR(2),
+                       max_length DECIMAL(50,2),
+                       max_width DECIMAL(50,2),
+                       max_height DECIMAL(50,2),
+                       max_weight DECIMAL(50,2),
+                       price DECIMAL(50,2),
+                       fk_item_category INT,
+                       FOREIGN KEY (fk_item_category) REFERENCES item_categories(id));
+#6
+  CREATE TABLE senders(id INT PRIMARY KEY AUTO_INCREMENT,
+                       name VARCHAR(50),
+                       street VARCHAR(50),
+                       zip_code INT,
+                       city VARCHAR(50));
+#7
+  CREATE TABLE recipients(id INT PRIMARY KEY AUTO_INCREMENT,
+                          name VARCHAR(50),
+                          street VARCHAR(50),
+                          zip_code INT,
+                          city VARCHAR(50),
+                          country_code VARCHAR(2));
+#8
+  CREATE TABLE tracking_codes(id INT PRIMARY KEY AUTO_INCREMENT,
+                              `timestamp` TIMESTAMP,
+                              code CHAR(30));
+#9
+  CREATE TABLE out_deliveries(id INT PRIMARY KEY AUTO_INCREMENT,
+                            date datetime);
+#10
+  CREATE TABLE employees(id INT PRIMARY KEY AUTO_INCREMENT,
+                         last_name VARCHAR(50),
+                     		 first_name VARCHAR(50));
+#11
+  CREATE TABLE del_items(id INT PRIMARY KEY AUTO_INCREMENT,
+                         length DECIMAL(50,2),
+                         width DECIMAL(50,2),
+                         height DECIMAL(50,2),
+                         weight DECIMAL(50,2),
+                     		 fk_pu_station INT,
+                       	 FOREIGN KEY (fk_pu_station) REFERENCES pu_stations(id),
+                     		 fk_in_delivery INT
+                       	 FOREIGN KEY (fk_in_delivery) REFERENCES in_deliveries(id),
+                     		 fk_item_category INT,
+                       	 FOREIGN KEY (fk_item_category) REFERENCES item_categories(id),
+                     		 fk_sender INT,
+                       	 FOREIGN KEY (fk_sender) REFERENCES senders(id),
+                     		 fk_recipients INT,
+                       	 FOREIGN KEY (fk_recipients) REFERENCES recipients(id),
+                     		 fk_tracking_code INT,
+                       	 FOREIGN KEY (fk_tracking_code) REFERENCES tracking_codes(id),
+                     		 fk_out_delivery INT,
+                       	 FOREIGN KEY (fk_out_delivery) REFERENCES out_deliveries(id),
+                     		 fk_employee INT,
+                       	 FOREIGN KEY (fk_employee) REFERENCES employees(id));
+                        
+TEST DATA
+#12
+  INSERT INTO pu_stations(organization, street, zip_code, city)
+  VALUES ("Postal Office", "Somewhere 123", 3425, "Hopping"),
+         ("Pick-up Package", "Lorem 14", 1324, "Ipsum"),
+		     ("CF Mail", "Kettenbrückengasse 14", 1000, "Vienna");
+#13
+  INSERT INTO in_deliveries(date)
+  VALUES ("2020-01-15"),
+         ("2020-02-01"),
+		     ("2020-02-14"),
+         ("2020-03-01");
+#14
+  INSERT INTO item_categories(name)
+  VALUES ("package"),
+         ("letter"),
+         ("bulky freight");
+#15
+  INSERT INTO tariffs(country_code, max_length, max_width, max_height, max_weight, price, fk_item_category)
+  VALUES ("AT", 500.00, 250.00, 10.00, 15.00, 0.89, 2),
+         ("AT", 500.00, 250.00, 20.00, 500.00, 2.99, 2),
+         ("AT", 1000.00, 1000.00, 1000.00, 15000.00, 6.99, 1),
+         ("AT", 1500.00, 1500.00, 1000.00, 30000.00, 9.99, 1),
+         ("AT", 2000.00, 1500.00, 1500.00, 300000.00, 99.99, 3),
+         ("AT", 3000.00, 2000.00, 1500.00, 500000.00, 159.99, 3);
+#16
+  INSERT INTO senders(name, street, zip_code, city)
+  VALUES ("Hans Jürgen Müller", "Bahnhofstraße 12", 3300, "Amstetten"),
+         ("Georg Mayer", "Poolplatz 3", 1110, "Vienna"),
+         ("Ipsum Lorem", "Test 112", 1254, "Notting Hill");
+#17
+  INSERT INTO recipients(name, street, zip_code, city, country_code)
+  VALUES ("Gernot Müller", "Baumallee 12", 3300, "Amstetten", "AT"),
+  		   ("Georg Brunner", "Germanstraße 3", 99999, "Berlin", "DE"),
+  		   ("Ipsum Amed", "Gasse 21", 7741, "Hillbach", "AT");
+#18
+  INSERT INTO tracking_codes(code)
+  VALUES ("463257518063802337955425720290"),
+	       ("706520659264254493639971095317"),
+         ("407859603627772365104376561604");
+#19
+  INSERT INTO out_deliveries(date)
+  VALUES ("2020-02-15"),
+         ("2020-03-01"),
+		     ("2020-03-14"),
+         ("2020-05-01");
+#20
+  INSERT INTO employees(last_name, first_name)
+  VALUES ("Bruckner", "Emil"),
+	       ("Hammermüller", "Johann"),
+         ("Gerstl", "Benjamin");
+#21
+  INSERT INTO del_items(length, width, height, weight, fk_pu_station, fk_in_delivery, fk_item_category, fk_sender, fk_recipients, fk_tracking_code, fk_out_delivery, fk_employee)
+  VALUES (230.25, 152.14, 16.00, 21, 2, 1, 2, 1, 1, 1, 2, 2),
+	       (2300.25, 1512.14, 981.00, 11526.00, 1, 3, 3, 2, 2, 2, 3, 1),
+	       (500.25, 250.14, 250.00, 3500.00, 1, 1, 3, 3, 3, 3, 4, 1);
+
+QUERIES
+#22 - Delivery item #3: When was it accepted? Which employee worked on it? To which country should it be delivered?
+  SELECT del_items.id AS `item no`, DATE_FORMAT(in_deliveries.date, "%M %d %Y") AS `date`, CONCAT(employees.last_name, ' ', employees.first_name) AS `employee`, recipients.country_code AS `country` FROM del_items
+  JOIN in_deliveries ON in_deliveries.id = del_items.fk_in_delivery
+  JOIN employees ON employees.id = del_items.fk_employee
+  JOIN recipients ON recipients.id = del_items.fk_recipients
+  WHERE del_items.id = 3;
+#23 - Which delivery items did employee #1 work on?
+  SELECT del_items.id AS `item no` FROM del_items
+  JOIN employees ON employees.id = del_items.fk_employee
+  WHERE employees.id = 1;
+#24 - Which recipient received the delivery item with the code '407859603627772365104376561604'?
+  SELECT recipients.name AS `recipient` FROM recipients
+  JOIN del_items ON del_items.fk_recipients = recipients.id
+  JOIN tracking_codes On tracking_codes.id = del_items.fk_tracking_code
+  WHERE tracking_codes.code = '407859603627772365104376561604';
+#25 - Show all tariffs including its infos and item category name in one table.
+  SELECT tariffs.country_code, tariffs.max_length, tariffs.max_width, tariffs.max_height, tariffs.max_weight, tariffs.price, item_categories.name
+  FROM tariffs
+  JOIN item_categories ON item_categories.id = tariffs.fk_item_category;
+#26 - Show all employes.
+  SELECT * FROM employees;
+#27 - Show all incoming delivery dates.
+  SELECT DATE_FORMAT(in_deliveries.date, "%M %d %Y") AS `date` FROM in_deliveries;
